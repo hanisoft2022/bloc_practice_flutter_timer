@@ -8,14 +8,35 @@ class TimerPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => TimerBloc(ticker: Ticker()),
+      create: (_) => TimerBloc(ticker: Ticker(), initialDuration: 120),
       child: const TimerView(),
     );
   }
 }
 
-class TimerView extends StatelessWidget {
+class TimerView extends StatefulWidget {
   const TimerView({Key? key}) : super(key: key);
+
+  @override
+  State<TimerView> createState() => _TimerViewState();
+}
+
+class _TimerViewState extends State<TimerView> {
+  final TextEditingController textEditingController = TextEditingController(text: "90");
+  int _inputSecond = 90; // 최초 기본값
+
+  @override
+  void dispose() {
+    textEditingController.dispose();
+    super.dispose();
+  }
+
+  void _onInputChanged(String value) {
+    setState(() {
+      _inputSecond = int.tryParse(value) ?? 0;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -26,12 +47,25 @@ class TimerView extends StatelessWidget {
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
-            children: const <Widget>[
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 100.0),
-                child: Center(child: TimerText()),
+            children: <Widget>[
+              Center(child: TimerText()),
+              const SizedBox(height: 30),
+              // 입력 필드 추가
+              SizedBox(
+                width: 100,
+                child: TextField(
+                  controller: textEditingController,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '초 입력',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: _onInputChanged,
+                ),
               ),
-              Actions(),
+              const SizedBox(height: 30),
+              Actions(inputSecond: _inputSecond),
             ],
           ),
         ],
@@ -52,7 +86,9 @@ class TimerText extends StatelessWidget {
 }
 
 class Actions extends StatelessWidget {
-  const Actions({super.key});
+  final int inputSecond;
+
+  const Actions({super.key, required this.inputSecond});
 
   @override
   Widget build(BuildContext context) {
@@ -66,8 +102,9 @@ class Actions extends StatelessWidget {
               TimerInitial() => [
                 FloatingActionButton(
                   child: const Icon(Icons.play_arrow),
-                  onPressed: () =>
-                      context.read<TimerBloc>().add(TimerStarted(duration: state.duration)),
+                  onPressed: inputSecond > 0
+                      ? () => context.read<TimerBloc>().add(TimerStarted(duration: inputSecond))
+                      : null,
                 ),
               ],
               TimerRunInProgress() => [
